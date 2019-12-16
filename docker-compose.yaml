@@ -1,7 +1,7 @@
 version: "2.3"
 services:
   web:
-    image: go-clean-arch
+    image: clean-arch
     container_name: article_management_api
     ports:
       - 9090:9090

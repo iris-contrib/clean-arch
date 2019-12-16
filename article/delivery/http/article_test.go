@@ -10,14 +10,13 @@ import (
 	"time"
 
 	"github.com/bxcodec/faker"
-	"github.com/labstack/echo"
+	"github.com/kataras/iris/v12"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 
-	articleHttp "github.com/bxcodec/go-clean-arch/article/delivery/http"
-	"github.com/bxcodec/go-clean-arch/article/mocks"
-	"github.com/bxcodec/go-clean-arch/models"
+	articleHttp "github.com/iris-contrib/clean-arch/article/delivery/http"
+	"github.com/iris-contrib/clean-arch/article/mocks"
+	"github.com/iris-contrib/clean-arch/models"
 )
 
 func TestFetch(t *testing.T) {
@@ -31,21 +30,21 @@ func TestFetch(t *testing.T) {
 	cursor := "2"
 	mockUCase.On("Fetch", mock.Anything, cursor, int64(num)).Return(mockListArticle, "10", nil)
 
-	e := echo.New()
-	req, err := http.NewRequest(echo.GET, "/article?num=1&cursor="+cursor, strings.NewReader(""))
+	app := iris.New()
+	req, err := http.NewRequest(iris.MethodGet, "/article?num=1&cursor="+cursor, strings.NewReader(""))
 	assert.NoError(t, err)
 
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
+	ctx := app.ContextPool.Acquire(rec, req)
 	handler := articleHttp.ArticleHandler{
 		AUsecase: mockUCase,
 	}
-	err = handler.FetchArticle(c)
-	require.NoError(t, err)
+	handler.FetchArticle(ctx)
+	app.ContextPool.Release(ctx)
 
 	responseCursor := rec.Header().Get("X-Cursor")
 	assert.Equal(t, "10", responseCursor)
-	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, iris.StatusOK, rec.Code)
 	mockUCase.AssertExpectations(t)
 }
 
@@ -55,21 +54,21 @@ func TestFetchError(t *testing.T) {
 	cursor := "2"
 	mockUCase.On("Fetch", mock.Anything, cursor, int64(num)).Return(nil, "", models.ErrInternalServerError)
 
-	e := echo.New()
-	req, err := http.NewRequest(echo.GET, "/article?num=1&cursor="+cursor, strings.NewReader(""))
+	app := iris.New()
+	req, err := http.NewRequest(iris.MethodGet, "/article?num=1&cursor="+cursor, strings.NewReader(""))
 	assert.NoError(t, err)
 
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
+	ctx := app.ContextPool.Acquire(rec, req)
 	handler := articleHttp.ArticleHandler{
 		AUsecase: mockUCase,
 	}
-	err = handler.FetchArticle(c)
-	require.NoError(t, err)
+	handler.FetchArticle(ctx)
+	app.ContextPool.Release(ctx)
 
 	responseCursor := rec.Header().Get("X-Cursor")
 	assert.Equal(t, "", responseCursor)
-	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Equal(t, iris.StatusInternalServerError, rec.Code)
 	mockUCase.AssertExpectations(t)
 }
 
@@ -84,22 +83,20 @@ func TestGetByID(t *testing.T) {
 
 	mockUCase.On("GetByID", mock.Anything, int64(num)).Return(&mockArticle, nil)
 
-	e := echo.New()
-	req, err := http.NewRequest(echo.GET, "/article/"+strconv.Itoa(num), strings.NewReader(""))
+	app := iris.New()
+	req, err := http.NewRequest(iris.MethodGet, "/article/"+strconv.Itoa(num), strings.NewReader(""))
 	assert.NoError(t, err)
 
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c.SetPath("article/:id")
-	c.SetParamNames("id")
-	c.SetParamValues(strconv.Itoa(num))
+	ctx := app.ContextPool.Acquire(rec, req)
+	ctx.Params().Set("id", strconv.Itoa(num))
 	handler := articleHttp.ArticleHandler{
 		AUsecase: mockUCase,
 	}
-	err = handler.GetByID(c)
-	require.NoError(t, err)
+	handler.GetByID(ctx)
+	app.ContextPool.Release(ctx)
 
-	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, iris.StatusOK, rec.Code)
 	mockUCase.AssertExpectations(t)
 }
 
@@ -120,22 +117,22 @@ func TestStore(t *testing.T) {
 
 	mockUCase.On("Store", mock.Anything, mock.AnythingOfType("*models.Article")).Return(nil)
 
-	e := echo.New()
-	req, err := http.NewRequest(echo.POST, "/article", strings.NewReader(string(j)))
+	app := iris.New()
+	req, err := http.NewRequest(iris.MethodPost, "/article", strings.NewReader(string(j)))
 	assert.NoError(t, err)
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c.SetPath("/article")
+	req.URL.Path = "/article"
+	ctx := app.ContextPool.Acquire(rec, req)
 
 	handler := articleHttp.ArticleHandler{
 		AUsecase: mockUCase,
 	}
-	err = handler.Store(c)
-	require.NoError(t, err)
+	handler.Store(ctx)
+	app.ContextPool.Release(ctx)
 
-	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.Equal(t, iris.StatusCreated, rec.Code)
 	mockUCase.AssertExpectations(t)
 }
 
@@ -150,22 +147,19 @@ func TestDelete(t *testing.T) {
 
 	mockUCase.On("Delete", mock.Anything, int64(num)).Return(nil)
 
-	e := echo.New()
-	req, err := http.NewRequest(echo.DELETE, "/article/"+strconv.Itoa(num), strings.NewReader(""))
+	app := iris.New()
+	req, err := http.NewRequest(iris.MethodDelete, "/article/"+strconv.Itoa(num), strings.NewReader(""))
 	assert.NoError(t, err)
 
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c.SetPath("article/:id")
-	c.SetParamNames("id")
-	c.SetParamValues(strconv.Itoa(num))
+	ctx := app.ContextPool.Acquire(rec, req)
+	ctx.Params().Set("id", strconv.Itoa(num))
 	handler := articleHttp.ArticleHandler{
 		AUsecase: mockUCase,
 	}
-	err = handler.Delete(c)
-	require.NoError(t, err)
+	handler.Delete(ctx)
+	app.ContextPool.Release(ctx)
 
 	assert.Equal(t, http.StatusNoContent, rec.Code)
 	mockUCase.AssertExpectations(t)
-
 }

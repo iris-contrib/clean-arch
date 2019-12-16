@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
 
-	articleRepo "github.com/bxcodec/go-clean-arch/article/repository"
-	"github.com/bxcodec/go-clean-arch/models"
+	articleRepo "github.com/iris-contrib/clean-arch/article/repository"
+	"github.com/iris-contrib/clean-arch/models"
 )
 
 func TestFetch(t *testing.T) {
@@ -19,11 +19,11 @@ func TestFetch(t *testing.T) {
 	}
 
 	mockArticles := []models.Article{
-		models.Article{
+		{
 			ID: 1, Title: "title 1", Content: "content 1",
 			Author: models.Author{ID: 1}, UpdatedAt: time.Now(), CreatedAt: time.Now(),
 		},
-		models.Article{
+		{
 			ID: 2, Title: "title 2", Content: "content 2",
 			Author: models.Author{ID: 1}, UpdatedAt: time.Now(), CreatedAt: time.Now(),
 		},

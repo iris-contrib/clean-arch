@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/sirupsen/logrus"
+	"github.com/kataras/golog"
 
-	"github.com/bxcodec/go-clean-arch/author"
-	"github.com/bxcodec/go-clean-arch/models"
+	"github.com/iris-contrib/clean-arch/author"
+	"github.com/iris-contrib/clean-arch/models"
 )
 
 type mysqlAuthorRepo struct {
@@ -25,7 +25,7 @@ func (m *mysqlAuthorRepo) getOne(ctx context.Context, query string, args ...inte
 
 	stmt, err := m.DB.PrepareContext(ctx, query)
 	if err != nil {
-		logrus.Error(err)
+		golog.Error(err)
 		return nil, err
 	}
 	row := stmt.QueryRowContext(ctx, args...)
@@ -38,7 +38,7 @@ func (m *mysqlAuthorRepo) getOne(ctx context.Context, query string, args ...inte
 		&a.UpdatedAt,
 	)
 	if err != nil {
-		logrus.Error(err)
+		golog.Error(err)
 		return nil, err
 	}
 

@@ -3,7 +3,7 @@ package article
 import (
 	"context"
 
-	"github.com/bxcodec/go-clean-arch/models"
+	"github.com/iris-contrib/clean-arch/models"
 )
 
 // Usecase represent the article's usecases

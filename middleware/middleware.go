@@ -1,6 +1,6 @@
 package middleware
 
-import "github.com/labstack/echo"
+import "github.com/kataras/iris/v12"
 
 // GoMiddleware represent the data-struct for middleware
 type GoMiddleware struct {
@@ -8,11 +8,9 @@ type GoMiddleware struct {
 }
 
 // CORS will handle the CORS middleware
-func (m *GoMiddleware) CORS(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		c.Response().Header().Set("Access-Control-Allow-Origin", "*")
-		return next(c)
-	}
+func (m *GoMiddleware) CORS(ctx iris.Context) {
+	ctx.Header("Access-Control-Allow-Origin", "*")
+	ctx.Next()
 }
 
 // InitMiddleware intialize the middleware

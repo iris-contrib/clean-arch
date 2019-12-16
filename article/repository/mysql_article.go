@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/kataras/golog"
 
-	"github.com/bxcodec/go-clean-arch/article"
-	"github.com/bxcodec/go-clean-arch/models"
+	"github.com/iris-contrib/clean-arch/article"
+	"github.com/iris-contrib/clean-arch/models"
 )
 
 const (
@@ -29,14 +29,14 @@ func NewMysqlArticleRepository(Conn *sql.DB) article.Repository {
 func (m *mysqlArticleRepository) fetch(ctx context.Context, query string, args ...interface{}) ([]*models.Article, error) {
 	rows, err := m.Conn.QueryContext(ctx, query, args...)
 	if err != nil {
-		logrus.Error(err)
+		golog.Error(err)
 		return nil, err
 	}
 
 	defer func() {
 		err := rows.Close()
 		if err != nil {
-			logrus.Error(err)
+			golog.Error(err)
 		}
 	}()
 
@@ -54,7 +54,7 @@ func (m *mysqlArticleRepository) fetch(ctx context.Context, query string, args .
 		)
 
 		if err != nil {
-			logrus.Error(err)
+			golog.Error(err)
 			return nil, err
 		}
 		t.Author = models.Author{

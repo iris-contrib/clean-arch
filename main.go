@@ -3,20 +3,20 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/labstack/echo"
+	"github.com/kataras/golog"
+	"github.com/kataras/iris/v12"
 	"github.com/spf13/viper"
 
-	_articleHttpDeliver "github.com/bxcodec/go-clean-arch/article/delivery/http"
-	_articleRepo "github.com/bxcodec/go-clean-arch/article/repository"
-	_articleUcase "github.com/bxcodec/go-clean-arch/article/usecase"
-	_authorRepo "github.com/bxcodec/go-clean-arch/author/repository"
-	"github.com/bxcodec/go-clean-arch/middleware"
+	_articleHttpDeliver "github.com/iris-contrib/clean-arch/article/delivery/http"
+	_articleRepo "github.com/iris-contrib/clean-arch/article/repository"
+	_articleUcase "github.com/iris-contrib/clean-arch/article/usecase"
+	_authorRepo "github.com/iris-contrib/clean-arch/author/repository"
+	"github.com/iris-contrib/clean-arch/middleware"
 )
 
 func init() {
@@ -48,26 +48,26 @@ func main() {
 	}
 	err = dbConn.Ping()
 	if err != nil {
-		log.Fatal(err)
+		golog.Fatal(err)
 		os.Exit(1)
 	}
 
 	defer func() {
 		err := dbConn.Close()
 		if err != nil {
-			log.Fatal(err)
+			golog.Fatal(err)
 		}
 	}()
 
-	e := echo.New()
+	app := iris.New()
 	middL := middleware.InitMiddleware()
-	e.Use(middL.CORS)
+	app.Use(middL.CORS)
 	authorRepo := _authorRepo.NewMysqlAuthorRepository(dbConn)
 	ar := _articleRepo.NewMysqlArticleRepository(dbConn)
 
 	timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second
 	au := _articleUcase.NewArticleUsecase(ar, authorRepo, timeoutContext)
-	_articleHttpDeliver.NewArticleHandler(e, au)
+	_articleHttpDeliver.NewArticleHandler(app, au)
 
-	log.Fatal(e.Start(viper.GetString("server.address")))
+	app.Run(iris.Addr(viper.GetString("server.address")))
 }

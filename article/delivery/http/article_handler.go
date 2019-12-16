@@ -2,15 +2,12 @@ package http
 
 import (
 	"context"
-	"net/http"
-	"strconv"
 
-	"github.com/labstack/echo"
-	"github.com/sirupsen/logrus"
+	"github.com/kataras/iris/v12"
 	validator "gopkg.in/go-playground/validator.v9"
 
-	"github.com/bxcodec/go-clean-arch/article"
-	"github.com/bxcodec/go-clean-arch/models"
+	"github.com/iris-contrib/clean-arch/article"
+	"github.com/iris-contrib/clean-arch/models"
 )
 
 // ResponseError represent the reseponse error struct
@@ -24,52 +21,52 @@ type ArticleHandler struct {
 }
 
 // NewArticleHandler will initialize the articles/ resources endpoint
-func NewArticleHandler(e *echo.Echo, us article.Usecase) {
+func NewArticleHandler(r iris.Party, us article.Usecase) {
 	handler := &ArticleHandler{
 		AUsecase: us,
 	}
-	e.GET("/articles", handler.FetchArticle)
-	e.POST("/articles", handler.Store)
-	e.GET("/articles/:id", handler.GetByID)
-	e.DELETE("/articles/:id", handler.Delete)
+	r.Get("/articles", handler.FetchArticle)
+	r.Post("/articles", handler.Store)
+	r.Get("/articles/{id:int64}", handler.GetByID)
+	r.Delete("/articles/{id:int64}", handler.Delete)
 }
 
 // FetchArticle will fetch the article based on given params
-func (a *ArticleHandler) FetchArticle(c echo.Context) error {
-	numS := c.QueryParam("num")
-	num, _ := strconv.Atoi(numS)
-	cursor := c.QueryParam("cursor")
-	ctx := c.Request().Context()
-	if ctx == nil {
-		ctx = context.Background()
+func (a *ArticleHandler) FetchArticle(ctx iris.Context) {
+	num := ctx.URLParamInt64Default("num", 1)
+	cursor := ctx.URLParam("cursor")
+	c := ctx.Request().Context()
+	if c == nil {
+		c = context.Background()
 	}
-	listAr, nextCursor, err := a.AUsecase.Fetch(ctx, cursor, int64(num))
+	listAr, nextCursor, err := a.AUsecase.Fetch(c, cursor, num)
 
 	if err != nil {
-		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+		handleError(ctx, err)
+		return
 	}
-	c.Response().Header().Set(`X-Cursor`, nextCursor)
-	return c.JSON(http.StatusOK, listAr)
+
+	ctx.Header("X-Cursor", nextCursor)
+	ctx.JSON(listAr)
 }
 
 // GetByID will get article by given id
-func (a *ArticleHandler) GetByID(c echo.Context) error {
-	idP, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return c.JSON(http.StatusNotFound, models.ErrNotFound.Error())
+func (a *ArticleHandler) GetByID(ctx iris.Context) {
+	// always found, because of {id:int64}, otherwise router would already throw 404.
+	id, _ := ctx.Params().GetInt64("id")
+
+	c := ctx.Request().Context()
+	if c == nil {
+		c = context.Background()
 	}
 
-	id := int64(idP)
-	ctx := c.Request().Context()
-	if ctx == nil {
-		ctx = context.Background()
+	art, err := a.AUsecase.GetByID(c, id)
+	if err != nil {
+		handleError(ctx, err)
+		return
 	}
 
-	art, err := a.AUsecase.GetByID(ctx, id)
-	if err != nil {
-		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
-	}
-	return c.JSON(http.StatusOK, art)
+	ctx.JSON(art)
 }
 
 func isRequestValid(m *models.Article) (bool, error) {
@@ -82,62 +79,73 @@ func isRequestValid(m *models.Article) (bool, error) {
 }
 
 // Store will store the article by given request body
-func (a *ArticleHandler) Store(c echo.Context) error {
+func (a *ArticleHandler) Store(ctx iris.Context) {
 	var article models.Article
-	err := c.Bind(&article)
+
+	err := ctx.ReadJSON(&article)
 	if err != nil {
-		return c.JSON(http.StatusUnprocessableEntity, err.Error())
+		ctx.StatusCode(iris.StatusUnprocessableEntity)
+		ctx.JSON(err.Error())
+		return
 	}
 
 	if ok, err := isRequestValid(&article); !ok {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-	ctx := c.Request().Context()
-	if ctx == nil {
-		ctx = context.Background()
+		ctx.StatusCode(iris.StatusBadRequest)
+		ctx.JSON(err.Error())
+		return
 	}
 
-	err = a.AUsecase.Store(ctx, &article)
+	c := ctx.Request().Context()
+	if c == nil {
+		c = context.Background()
+	}
+
+	err = a.AUsecase.Store(c, &article)
 
 	if err != nil {
-		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+		handleError(ctx, err)
+		return
 	}
-	return c.JSON(http.StatusCreated, article)
+
+	ctx.StatusCode(iris.StatusCreated)
+	ctx.JSON(article)
 }
 
 // Delete will delete article by given param
-func (a *ArticleHandler) Delete(c echo.Context) error {
-	idP, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return c.JSON(http.StatusNotFound, models.ErrNotFound.Error())
-	}
-	id := int64(idP)
-	ctx := c.Request().Context()
-	if ctx == nil {
-		ctx = context.Background()
+func (a *ArticleHandler) Delete(ctx iris.Context) {
+	id, _ := ctx.Params().GetInt64("id")
+
+	c := ctx.Request().Context()
+	if c == nil {
+		c = context.Background()
 	}
 
-	err = a.AUsecase.Delete(ctx, id)
+	err := a.AUsecase.Delete(c, id)
 	if err != nil {
-		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+		handleError(ctx, err)
+		return
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	ctx.StatusCode(iris.StatusNoContent)
 }
 
-func getStatusCode(err error) int {
+func handleError(ctx iris.Context, err error) {
 	if err == nil {
-		return http.StatusOK
+		return
 	}
-	logrus.Error(err)
+
+	statusCode := iris.StatusInternalServerError
 	switch err {
 	case models.ErrInternalServerError:
-		return http.StatusInternalServerError
+		statusCode = iris.StatusInternalServerError
 	case models.ErrNotFound:
-		return http.StatusNotFound
+		statusCode = iris.StatusNotFound
 	case models.ErrConflict:
-		return http.StatusConflict
-	default:
-		return http.StatusInternalServerError
+		statusCode = iris.StatusConflict
 	}
+
+	ctx.Application().Logger().Error(err)
+
+	ctx.StatusCode(statusCode)
+	ctx.JSON(ResponseError{Message: err.Error()})
 }

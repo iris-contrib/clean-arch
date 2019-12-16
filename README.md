@@ -1,12 +1,12 @@
-# go-clean-arch
+# Iris (Go) Clean Architecture
 
-## Looking for the old code ? 
-If you are looking for the old code, you can checkout to the [v1 branch](https://github.com/bxcodec/go-clean-arch/tree/v1)
+A clone of [bxcodec/go-clean-arch](https://github.com/bxcodec/go-clean-arch) refactored to run with [Iris Web Framework](https://github.com/kataras/iris).
 
-_Last Updated: May 12th 2018_
+_Last Updated: December 16th 2019_
 
 ## Description
-This is an example of implementation of Clean Architecture in Go (Golang) projects.
+
+This is an example of implementation of Clean Architecture in Iris (Go) projects.
 
 Rule of Clean Architecture by Uncle Bob
  * Independent of Frameworks. The architecture does not depend on the existence of some library of feature laden software. This allows you to use such frameworks as tools, rather than having to cram your system into their limited constraints.
@@ -25,11 +25,12 @@ This project has  4 Domain layer :
 
 #### The diagram:
 
-![golang clean architecture](https://github.com/bxcodec/go-clean-arch/raw/master/clean-arch.png)
+![clean architecture](https://github.com/iris-contrib/clean-arch/raw/master/clean-arch.png)
 
 The explanation about this project's structure  can read from this medium's post : https://medium.com/@imantumorang/golang-clean-archithecture-efd6d7c43047
 
 ### How To Run This Project
+
 > Make Sure you have run the article.sql in your mysql
 
 
@@ -49,10 +50,10 @@ Here is the steps to run it with `docker-compose`
 $ cd workspace
 
 # Clone into YOUR $GOPATH/src
-$ git clone https://github.com/bxcodec/go-clean-arch.git
+$ git clone https://github.com/iris-contrib/clean-arch.git
 
 #move to project
-$ cd go-clean-arch
+$ cd clean-arch
 
 # Build the docker image first
 $ make docker
@@ -72,12 +73,8 @@ $ make stop
 
 
 ### Tools Used:
-In this project, I use some tools listed below. But you can use any simmilar library that have the same purposes. But, well, different library will have different implementation type. Just be creative and use anything that you really need. 
 
-- All libraries listed in [`go.mod`](https://github.com/bxcodec/go-clean-arch/blob/master/go.mod) 
+In this project, I use some tools listed below. But you can use any similar library that have the same purposes. But, well, different library will have different implementation type. Just be creative and use anything that you really need.
+
+- All libraries listed in [`go.mod`](https://github.com/iris-contrib/clean-arch/blob/master/go.mod) 
 - ["github.com/vektra/mockery".](https://github.com/vektra/mockery) To Generate Mocks for testing needs.
-
-
-### Change log 
- - 2018-04-30 : [Move to new projects folder](https://github.com/bxcodec/go-clean-arch/pull/8)
- - 2018-05-09 : [Add Context](https://github.com/bxcodec/go-clean-arch/pull/9)

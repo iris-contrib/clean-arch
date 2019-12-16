@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/kataras/golog"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/bxcodec/go-clean-arch/article"
-	"github.com/bxcodec/go-clean-arch/author"
-	"github.com/bxcodec/go-clean-arch/models"
+	"github.com/iris-contrib/clean-arch/article"
+	"github.com/iris-contrib/clean-arch/author"
+	"github.com/iris-contrib/clean-arch/models"
 )
 
 type articleUsecase struct {
@@ -59,7 +59,7 @@ func (a *articleUsecase) fillAuthorDetails(c context.Context, data []*models.Art
 	go func() {
 		err := g.Wait()
 		if err != nil {
-			logrus.Error(err)
+			golog.Error(err)
 			return
 		}
 		close(chanAuthor)
